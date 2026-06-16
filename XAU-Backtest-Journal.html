@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>XAU · Backtest Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --gold:#F5C842;--gold2:#E8A020;--gold-glow:rgba(245,200,66,0.18);
+  --bg:#080A0F;--surface:#0F1219;--glass:rgba(255,255,255,0.04);
+  --glass2:rgba(255,255,255,0.07);--border:rgba(255,255,255,0.07);
+  --border2:rgba(245,200,66,0.25);--green:#00D48C;--green-glow:rgba(0,212,140,0.15);
+  --red:#FF4560;--red-glow:rgba(255,69,96,0.15);
+  --text:#F0F0F0;--muted:#5A6478;--muted2:#8892A4;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;position:relative}
+body::before{content:'';position:fixed;top:-120px;left:50%;transform:translateX(-50%);
+  width:500px;height:300px;background:radial-gradient(ellipse,rgba(245,200,66,0.07) 0%,transparent 70%);
+  pointer-events:none;z-index:0}
+
+.hdr{position:sticky;top:0;z-index:90;padding:16px 20px 0;background:linear-gradient(to bottom,rgba(8,10,15,0.98) 80%,transparent)}
+.hdr-inner{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-icon{width:36px;height:36px;background:linear-gradient(135deg,#F5C842,#E8A020);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 20px rgba(245,200,66,0.3)}
+.brand-name{font-size:17px;font-weight:700;letter-spacing:-0.3px}
+.brand-sub{font-size:10px;color:var(--muted2);font-family:var(--mono);letter-spacing:1.5px;margin-top:1px}
+.hdr-btns{display:flex;gap:8px;align-items:center}
+.new-btn{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;border:none;border-radius:12px;padding:9px 16px;font-weight:700;font-size:13px;font-family:var(--font);cursor:pointer;box-shadow:0 4px 20px rgba(245,200,66,0.25);transition:all 0.2s}
+.new-btn:active{transform:scale(0.95)}
+.backup-btn{background:var(--glass2);border:1px solid var(--border);color:var(--muted2);border-radius:12px;padding:9px 12px;font-size:13px;cursor:pointer;transition:all 0.2s}
+.backup-btn:active{transform:scale(0.95)}
+
+.hero{padding:24px 20px 0;position:relative}
+.hero-card{background:linear-gradient(135deg,rgba(245,200,66,0.08) 0%,rgba(232,160,32,0.04) 100%);border:1px solid var(--border2);border-radius:20px;padding:22px;position:relative;overflow:hidden}
+.hero-card::after{content:'XAU';position:absolute;right:-8px;top:-14px;font-size:90px;font-weight:900;color:rgba(245,200,66,0.04);font-family:var(--mono);letter-spacing:-4px;pointer-events:none}
+.hero-label{font-size:10px;color:var(--muted2);font-family:var(--mono);letter-spacing:2px;margin-bottom:6px}
+.hero-wr{font-size:46px;font-weight:700;color:var(--gold);letter-spacing:-2px;line-height:1}
+.hero-wr span{font-size:20px;font-weight:400;color:var(--muted2);letter-spacing:0}
+.hero-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:18px}
+.hs-val{font-size:18px;font-weight:700;font-family:var(--mono)}
+.hs-val.g{color:var(--green)}.hs-val.r{color:var(--red)}.hs-val.go{color:var(--gold)}
+.hs-lbl{font-size:9px;color:var(--muted);letter-spacing:1.5px;margin-top:3px}
+.wr-bar-wrap{margin-top:16px}
+.wr-bar-track{height:5px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden}
+.wr-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--green),#00F0A0);transition:width 0.8s cubic-bezier(.4,0,0,1)}
+.wr-bar-meta{display:flex;justify-content:space-between;margin-top:6px}
+.wr-meta-txt{font-size:10px;color:var(--muted);font-family:var(--mono)}
+
+/* Streak Banner */
+.streak-banner{margin:12px 20px 0;padding:12px 16px;border-radius:14px;display:none;align-items:center;gap:10px}
+.streak-banner.show{display:flex}
+.streak-banner.win-streak{background:rgba(0,212,140,0.08);border:1px solid rgba(0,212,140,0.25)}
+.streak-banner.lost-streak{background:rgba(255,69,96,0.08);border:1px solid rgba(255,69,96,0.25)}
+.streak-ico{font-size:22px}
+.streak-info{flex:1}
+.streak-label{font-size:10px;letter-spacing:1.5px;font-weight:700;margin-bottom:2px}
+.streak-banner.win-streak .streak-label{color:var(--green)}
+.streak-banner.lost-streak .streak-label{color:var(--red)}
+.streak-val{font-size:13px;color:var(--muted2)}
+
+.msr{display:flex;gap:8px;padding:16px 20px 0;overflow-x:auto;scrollbar-width:none}
+.msr::-webkit-scrollbar{display:none}
+.ms-chip{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:10px 14px;min-width:80px;flex-shrink:0;text-align:center}
+.ms-v{font-size:16px;font-weight:700;font-family:var(--mono)}
+.ms-l{font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:1px}
+
+.tabs{display:flex;gap:6px;padding:16px 20px 0;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tb{background:var(--glass);border:1px solid var(--border);color:var(--muted2);border-radius:10px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.15s;flex-shrink:0}
+.tb.on{background:rgba(245,200,66,0.12);border-color:rgba(245,200,66,0.35);color:var(--gold)}
+
+.sec-head{padding:20px 20px 10px;display:flex;justify-content:space-between;align-items:center}
+.sec-title{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:2px}
+.sec-count{font-size:11px;color:var(--muted);font-family:var(--mono)}
+
+.tlist{padding:0 20px;display:flex;flex-direction:column;gap:10px;padding-bottom:110px}
+.tc{background:var(--glass);border:1px solid var(--border);border-radius:18px;padding:16px;position:relative;overflow:hidden;transition:border-color 0.2s}
+.tc::before{content:'';position:absolute;inset:0;border-radius:18px;opacity:0;transition:opacity 0.2s;pointer-events:none}
+.tc.win{border-color:rgba(0,212,140,0.2)}.tc.win::before{background:radial-gradient(ellipse at top left,var(--green-glow),transparent 60%);opacity:1}
+.tc.lost{border-color:rgba(255,69,96,0.2)}.tc.lost::before{background:radial-gradient(ellipse at top left,var(--red-glow),transparent 60%);opacity:1}
+.tc.open{border-color:rgba(245,200,66,0.2)}.tc.open::before{background:radial-gradient(ellipse at top left,var(--gold-glow),transparent 60%);opacity:1}
+.tc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.tc-left{display:flex;align-items:center;gap:8px}
+.dir-tag{padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;font-family:var(--mono);letter-spacing:0.5px}
+.dir-tag.buy{background:rgba(0,212,140,0.12);color:var(--green)}
+.dir-tag.sell{background:rgba(255,69,96,0.12);color:var(--red)}
+.tc-pair{font-size:12px;font-weight:600;color:var(--muted2)}
+.res-tag{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.5px}
+.res-tag.win{background:rgba(0,212,140,0.1);color:var(--green);border:1px solid rgba(0,212,140,0.2)}
+.res-tag.lost{background:rgba(255,69,96,0.1);color:var(--red);border:1px solid rgba(255,69,96,0.2)}
+.res-tag.open{background:rgba(245,200,66,0.1);color:var(--gold);border:1px solid rgba(245,200,66,0.2)}
+.tc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.tc-cell{background:rgba(255,255,255,0.03);border-radius:10px;padding:9px 10px}
+.tc-cell-l{font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px;font-weight:600}
+.tc-cell-v{font-size:13px;font-weight:600;font-family:var(--mono)}
+.tc-cell-v.go{color:var(--gold)}.tc-cell-v.gr{color:var(--green)}.tc-cell-v.re{color:var(--red)}
+.tc-note{margin-top:10px;padding:9px 12px;background:rgba(255,255,255,0.03);border-radius:10px;font-size:11px;color:var(--muted2);line-height:1.6;border-left:2px solid var(--border2)}
+.tc-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+.tc-num{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.tc-acts{display:flex;gap:6px}
+.ib{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted2);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:all 0.15s}
+.ib:hover{background:rgba(255,255,255,0.09);color:var(--text)}
+
+.empty{text-align:center;padding:60px 20px;display:none}
+.empty.show{display:block}
+.empty-ico{font-size:44px;margin-bottom:14px;opacity:0.5}
+.empty-t{font-size:15px;font-weight:600;margin-bottom:6px;color:var(--muted2)}
+.empty-s{font-size:12px;color:var(--muted)}
+
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(8,10,15,0.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:10px 0 24px;display:flex;justify-content:space-around;z-index:90}
+.ni{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--muted);cursor:pointer;transition:color 0.15s}
+.ni.on{color:var(--gold)}
+.ni-ico{font-size:20px}
+
+/* MODAL TRADE */
+.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:200;align-items:flex-end;justify-content:center}
+.moverlay.show{display:flex}
+.modal{background:#0D1018;border-radius:24px 24px 0 0;border:1px solid var(--border2);border-bottom:none;padding:20px 20px 40px;width:100%;max-width:430px;animation:mup 0.3s cubic-bezier(.4,0,0,1);max-height:92vh;overflow-y:auto}
+@keyframes mup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mhandle{width:36px;height:4px;background:var(--border2);border-radius:99px;margin:0 auto 20px}
+.mtitle{font-size:17px;font-weight:700;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.mtitle span{color:var(--gold)}
+.mclose{background:var(--glass2);border:1px solid var(--border);color:var(--muted2);width:32px;height:32px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.fg{margin-bottom:14px}
+.fl{display:block;font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1.5px;margin-bottom:7px}
+.fi{width:100%;background:var(--glass);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:12px 14px;font-size:14px;font-family:var(--font);font-weight:500;outline:none;transition:border-color 0.2s;-webkit-appearance:none}
+.fi:focus{border-color:var(--border2)}
+.fi option{background:#0D1018}
+textarea.fi{min-height:72px;resize:none;line-height:1.5}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tog2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tog3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.topt{border:1.5px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s;color:var(--muted2)}
+.topt.buy.on{border-color:rgba(0,212,140,0.5);color:var(--green);background:rgba(0,212,140,0.08)}
+.topt.sell.on{border-color:rgba(255,69,96,0.5);color:var(--red);background:rgba(255,69,96,0.08)}
+.topt.win.on{border-color:rgba(0,212,140,0.5);color:var(--green);background:rgba(0,212,140,0.08)}
+.topt.lost.on{border-color:rgba(255,69,96,0.5);color:var(--red);background:rgba(255,69,96,0.08)}
+.topt.open.on{border-color:rgba(245,200,66,0.5);color:var(--gold);background:rgba(245,200,66,0.08)}
+
+.sbtn{width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:700;font-family:var(--font);cursor:pointer;margin-top:6px;letter-spacing:0.2px;box-shadow:0 6px 24px rgba(245,200,66,0.25);transition:all 0.2s}
+.sbtn:active{transform:scale(0.98);opacity:0.9}
+
+/* BACKUP MODAL */
+.bkoverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);z-index:200;align-items:center;justify-content:center;padding:20px}
+.bkoverlay.show{display:flex}
+.bkmodal{background:#0D1018;border:1px solid var(--border2);border-radius:24px;padding:24px;width:100%;max-width:390px;animation:fadeIn 0.25s ease}
+@keyframes fadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+.bk-title{font-size:17px;font-weight:700;color:var(--gold);margin-bottom:6px}
+.bk-sub{font-size:12px;color:var(--muted2);margin-bottom:22px;line-height:1.6}
+.bk-btn{width:100%;border:none;border-radius:14px;padding:14px;font-size:14px;font-weight:700;font-family:var(--font);cursor:pointer;margin-bottom:10px;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.bk-btn:active{transform:scale(0.97)}
+.bk-export{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000}
+.bk-import{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text)}
+.bk-cancel{background:transparent;border:1px solid var(--border);color:var(--muted2);margin-bottom:0}
+.bk-info{background:rgba(0,212,140,0.07);border:1px solid rgba(0,212,140,0.2);border-radius:12px;padding:12px 14px;margin-bottom:16px;display:none}
+.bk-info.show{display:block}
+.bk-info-t{font-size:11px;font-weight:700;color:var(--green);margin-bottom:4px;letter-spacing:0.5px}
+.bk-info-s{font-size:11px;color:var(--muted2);line-height:1.5}
+#fImport{display:none}
+
+/* TOAST */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(0,212,140,0.15);border:1px solid rgba(0,212,140,0.3);color:var(--green);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:300;opacity:0;transition:all 0.3s;pointer-events:none;backdrop-filter:blur(10px);white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* DELETE CONFIRM */
+.del-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;padding:20px}
+.del-overlay.show{display:flex}
+.del-modal{background:#0D1018;border:1px solid rgba(255,69,96,0.3);border-radius:20px;padding:24px;width:100%;max-width:340px;text-align:center;animation:fadeIn 0.2s ease}
+.del-ico{font-size:36px;margin-bottom:12px}
+.del-title{font-size:16px;font-weight:700;margin-bottom:8px}
+.del-sub{font-size:12px;color:var(--muted2);margin-bottom:22px;line-height:1.5}
+.del-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.del-no{background:var(--glass2);border:1px solid var(--border);color:var(--muted2);border-radius:12px;padding:13px;font-size:14px;font-weight:700;font-family:var(--font);cursor:pointer}
+.del-yes{background:linear-gradient(135deg,#FF4560,#CC1133);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;font-family:var(--font);cursor:pointer}
+</style>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="XAU Journal">
+  <meta name="theme-color" content="#F5C842">
+  <link rel="manifest" id="pwa-manifest">
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-inner">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-name">XAU Backtest</div>
+        <div class="brand-sub">GOLD · JOURNAL</div>
+      </div>
+    </div>
+    <div class="hdr-btns">
+      <button class="backup-btn" onclick="openBackup()" title="Backup & Restore">🔒</button>
+      <button class="new-btn" onclick="openModal()">+ New Trade</button>
+    </div>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-card">
+    <div class="hero-label">WINRATE</div>
+    <div class="hero-wr" id="heroWR">0<span>%</span></div>
+    <div class="hero-row">
+      <div><div class="hs-val go" id="hTotal">0</div><div class="hs-lbl">TOTAL</div></div>
+      <div><div class="hs-val g" id="hWin">0</div><div class="hs-lbl">WIN</div></div>
+      <div><div class="hs-val r" id="hLost">0</div><div class="hs-lbl">LOST</div></div>
+    </div>
+    <div class="wr-bar-wrap">
+      <div class="wr-bar-track"><div class="wr-bar-fill" id="wrBar" style="width:0%"></div></div>
+      <div class="wr-bar-meta"><span class="wr-meta-txt" id="wrLeft">—</span><span class="wr-meta-txt" id="wrRight">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Streak Banner -->
+<div class="streak-banner" id="streakBanner">
+  <div class="streak-ico" id="streakIco">🔥</div>
+  <div class="streak-info">
+    <div class="streak-label" id="streakLabel">WIN STREAK</div>
+    <div class="streak-val" id="streakVal">—</div>
+  </div>
+</div>
+
+<div class="msr">
+  <div class="ms-chip"><div class="ms-v" id="msOpen" style="color:var(--gold)">0</div><div class="ms-l">OPEN</div></div>
+  <div class="ms-chip"><div class="ms-v" id="msAvgRR" style="color:var(--green)">—</div><div class="ms-l">AVG R:R</div></div>
+  <div class="ms-chip"><div class="ms-v" id="msBuy" style="color:var(--green)">0</div><div class="ms-l">BUY</div></div>
+  <div class="ms-chip"><div class="ms-v" id="msSell" style="color:var(--red)">0</div><div class="ms-l">SELL</div></div>
+  <div class="ms-chip"><div class="ms-v" id="msBestRR" style="color:var(--gold)">—</div><div class="ms-l">BEST R:R</div></div>
+</div>
+
+<div class="tabs">
+  <div class="tb on" onclick="setFilter('all',this)">Semua</div>
+  <div class="tb" onclick="setFilter('win',this)">✅ Win</div>
+  <div class="tb" onclick="setFilter('lost',this)">❌ Lost</div>
+  <div class="tb" onclick="setFilter('open',this)">🟡 Open</div>
+  <div class="tb" onclick="setFilter('buy',this)">📈 Buy</div>
+  <div class="tb" onclick="setFilter('sell',this)">📉 Sell</div>
+  <div class="tb" onclick="setFilter('asian',this)">🌙 Asian</div>
+  <div class="tb" onclick="setFilter('london',this)">🇬🇧 London</div>
+  <div class="tb" onclick="setFilter('newyork',this)">🗽 New York</div>
+</div>
+
+<div class="sec-head">
+  <span class="sec-title">TRADE HISTORY</span>
+  <span class="sec-count" id="secCount">0 trades</span>
+</div>
+<div class="tlist" id="tlist"></div>
+<div class="empty" id="empty">
+  <div class="empty-ico">📊</div>
+  <div class="empty-t">Belum ada trade</div>
+  <div class="empty-s">Tap "+ New Trade" untuk mulai backtest XAU</div>
+</div>
+
+<div class="bnav">
+  <div class="ni on"><div class="ni-ico">📋</div><span>Journal</span></div>
+  <div class="ni" onclick="openBackup()"><div class="ni-ico">🔒</div><span>Backup</span></div>
+  <div class="ni" onclick="showToast('⚙️ Setting coming soon!')"><div class="ni-ico">⚙️</div><span>Setting</span></div>
+</div>
+
+<!-- MODAL TRADE -->
+<div class="moverlay" id="moverlay" onclick="overlayClose(event)">
+  <div class="modal" id="modalBox">
+    <div class="mhandle"></div>
+    <div class="mtitle"><span id="mtitleTxt">New Trade</span><button class="mclose" onclick="closeModal()">✕</button></div>
+
+    <div class="fg">
+      <label class="fl">ARAH POSISI</label>
+      <div class="tog2">
+        <div class="topt buy on" id="dBuy" onclick="pickDir('buy')">📈 BUY</div>
+        <div class="topt sell" id="dSell" onclick="pickDir('sell')">📉 SELL</div>
+      </div>
+    </div>
+
+    <div class="frow">
+      <div class="fg"><label class="fl">TANGGAL ENTRY</label><input type="date" class="fi" id="fEntryDate"></div>
+      <div class="fg"><label class="fl">TANGGAL CLOSE</label><input type="date" class="fi" id="fCloseDate"></div>
+    </div>
+
+    <div class="frow">
+      <div class="fg">
+        <label class="fl">R : R</label>
+        <input type="number" class="fi" id="fRR" placeholder="1.5" step="0.1" min="0">
+      </div>
+      <div class="fg">
+        <label class="fl">SESI</label>
+        <select class="fi" id="fSess">
+          <option value="">— Pilih Sesi —</option>
+          <option value="asian">Asian</option>
+          <option value="london">London</option>
+          <option value="newyork">New York</option>
+          <option value="london+ny">London + NY</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">HASIL</label>
+      <div class="tog3">
+        <div class="topt win on" id="rWin" onclick="pickRes('win')">✅ WIN</div>
+        <div class="topt lost" id="rLost" onclick="pickRes('lost')">❌ LOST</div>
+        <div class="topt open" id="rOpen" onclick="pickRes('open')">🟡 OPEN</div>
+      </div>
+    </div>
+
+    <div class="fg"><label class="fl">CATATAN</label><textarea class="fi" id="fNote" placeholder="Setup, alasan entry, evaluasi…"></textarea></div>
+    <button class="sbtn" onclick="saveTrade()">Simpan Trade</button>
+  </div>
+</div>
+
+<!-- BACKUP MODAL -->
+<div class="bkoverlay" id="bkoverlay" onclick="bkOverlayClose(event)">
+  <div class="bkmodal">
+    <div class="bk-title">🔒 Backup & Restore</div>
+    <div class="bk-sub">Export data trade kamu ke file JSON, atau restore dari backup sebelumnya.</div>
+    <div class="bk-info" id="bkInfo">
+      <div class="bk-info-t">✅ INFO</div>
+      <div class="bk-info-s" id="bkInfoTxt">—</div>
+    </div>
+    <button class="bk-btn bk-export" onclick="exportData()">📤 Export / Download Backup</button>
+    <button class="bk-btn bk-import" onclick="document.getElementById('fImport').click()">📥 Import / Restore Backup</button>
+    <input type="file" id="fImport" accept=".json" onchange="importData(event)">
+    <button class="bk-btn bk-cancel" onclick="closeBackup()">Tutup</button>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="del-overlay" id="delOverlay">
+  <div class="del-modal">
+    <div class="del-ico">🗑️</div>
+    <div class="del-title">Hapus Trade?</div>
+    <div class="del-sub">Trade ini akan dihapus permanen dan tidak bisa dikembalikan.</div>
+    <div class="del-btns">
+      <button class="del-no" onclick="closeDelConfirm()">Batal</button>
+      <button class="del-yes" onclick="confirmDelete()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let trades = JSON.parse(localStorage.getItem('xau_trades') || '[]');
+let currentFilter = 'all';
+let editId = null;
+let deleteId = null;
+let currentDir = 'buy';
+let currentRes = 'win';
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Set today's date as default
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('fEntryDate').value = today;
+  render();
+});
+
+// ─── SAVE / LOAD ─────────────────────────────────────────────────────────────
+function save() {
+  localStorage.setItem('xau_trades', JSON.stringify(trades));
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────────────────
+function openModal(id = null) {
+  editId = id;
+  const today = new Date().toISOString().split('T')[0];
+
+  if (id !== null) {
+    const t = trades.find(x => x.id === id);
+    if (!t) return;
+    document.getElementById('mtitleTxt').textContent = 'Edit Trade';
+    document.getElementById('fEntryDate').value = t.entryDate || '';
+    document.getElementById('fCloseDate').value = t.closeDate || '';
+    document.getElementById('fRR').value = t.rr || '';
+    document.getElementById('fSess').value = t.sess || '';
+    document.getElementById('fNote').value = t.note || '';
+    currentDir = t.dir || 'buy';
+    currentRes = t.result || 'win';
+  } else {
+    document.getElementById('mtitleTxt').textContent = 'New Trade';
+    document.getElementById('fEntryDate').value = today;
+    document.getElementById('fCloseDate').value = '';
+    document.getElementById('fRR').value = '';
+    document.getElementById('fSess').value = '';
+    document.getElementById('fNote').value = '';
+    currentDir = 'buy';
+    currentRes = 'win';
+  }
+
+  // Update toggles
+  updateDirToggle();
+  updateResToggle();
+
+  document.getElementById('moverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('moverlay').classList.remove('show');
+  document.body.style.overflow = '';
+  editId = null;
+}
+
+function overlayClose(e) {
+  if (e.target === document.getElementById('moverlay')) closeModal();
+}
+
+function pickDir(d) {
+  currentDir = d;
+  updateDirToggle();
+}
+
+function updateDirToggle() {
+  document.getElementById('dBuy').classList.toggle('on', currentDir === 'buy');
+  document.getElementById('dSell').classList.toggle('on', currentDir === 'sell');
+}
+
+function pickRes(r) {
+  currentRes = r;
+  updateResToggle();
+}
+
+function updateResToggle() {
+  document.getElementById('rWin').classList.toggle('on', currentRes === 'win');
+  document.getElementById('rLost').classList.toggle('on', currentRes === 'lost');
+  document.getElementById('rOpen').classList.toggle('on', currentRes === 'open');
+}
+
+function saveTrade() {
+  const entryDate = document.getElementById('fEntryDate').value;
+  const closeDate = document.getElementById('fCloseDate').value;
+  const rr = parseFloat(document.getElementById('fRR').value) || 0;
+  const sess = document.getElementById('fSess').value;
+  const note = document.getElementById('fNote').value.trim();
+
+  if (!entryDate) {
+    showToast('⚠️ Isi tanggal entry dulu!');
+    return;
+  }
+
+  if (editId !== null) {
+    const idx = trades.findIndex(x => x.id === editId);
+    if (idx !== -1) {
+      trades[idx] = { ...trades[idx], dir: currentDir, entryDate, closeDate, rr, sess, note, result: currentRes };
+      showToast('✏️ Trade diupdate!');
+    }
+  } else {
+    const newTrade = {
+      id: Date.now(),
+      dir: currentDir,
+      entryDate,
+      closeDate,
+      rr,
+      sess,
+      note,
+      result: currentRes,
+      createdAt: Date.now()
+    };
+    trades.unshift(newTrade);
+    showToast('✅ Trade disimpan!');
+  }
+
+  save();
+  closeModal();
+  render();
+}
+
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+function deleteTrade(id) {
+  deleteId = id;
+  document.getElementById('delOverlay').classList.add('show');
+}
+
+function closeDelConfirm() {
+  document.getElementById('delOverlay').classList.remove('show');
+  deleteId = null;
+}
+
+function confirmDelete() {
+  if (deleteId === null) return;
+  trades = trades.filter(x => x.id !== deleteId);
+  save();
+  render();
+  closeDelConfirm();
+  showToast('🗑️ Trade dihapus');
+}
+
+// ─── FILTER ───────────────────────────────────────────────────────────────────
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.tb').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  render();
+}
+
+function getFiltered() {
+  if (currentFilter === 'all') return trades;
+  if (['win','lost','open'].includes(currentFilter)) return trades.filter(t => t.result === currentFilter);
+  if (currentFilter === 'buy') return trades.filter(t => t.dir === 'buy');
+  if (currentFilter === 'sell') return trades.filter(t => t.dir === 'sell');
+  return trades.filter(t => t.sess === currentFilter || t.sess === 'london+ny' && ['london','newyork'].includes(currentFilter));
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  updateStats();
+  renderList();
+}
+
+function updateStats() {
+  const closed = trades.filter(t => t.result !== 'open');
+  const wins = trades.filter(t => t.result === 'win');
+  const losses = trades.filter(t => t.result === 'lost');
+  const opens = trades.filter(t => t.result === 'open');
+  const total = closed.length;
+  const wr = total > 0 ? Math.round((wins.length / total) * 100) : 0;
+
+  document.getElementById('heroWR').innerHTML = `${wr}<span>%</span>`;
+  document.getElementById('hTotal').textContent = total;
+  document.getElementById('hWin').textContent = wins.length;
+  document.getElementById('hLost').textContent = losses.length;
+  document.getElementById('wrBar').style.width = wr + '%';
+  document.getElementById('wrLeft').textContent = `${wins.length}W · ${losses.length}L`;
+  document.getElementById('wrRight').textContent = total > 0 ? `${wr}% rate` : '—';
+
+  // Metrics
+  document.getElementById('msOpen').textContent = opens.length;
+  document.getElementById('msBuy').textContent = trades.filter(t => t.dir === 'buy').length;
+  document.getElementById('msSell').textContent = trades.filter(t => t.dir === 'sell').length;
+
+  const rrVals = trades.filter(t => t.rr > 0).map(t => t.rr);
+  const avgRR = rrVals.length > 0 ? (rrVals.reduce((a,b)=>a+b,0)/rrVals.length).toFixed(1) : '—';
+  const bestRR = rrVals.length > 0 ? Math.max(...rrVals).toFixed(1) : '—';
+  document.getElementById('msAvgRR').textContent = avgRR !== '—' ? avgRR+'R' : '—';
+  document.getElementById('msBestRR').textContent = bestRR !== '—' ? bestRR+'R' : '—';
+
+  // Streak
+  updateStreak();
+}
+
+function updateStreak() {
+  const closed = trades.filter(t => t.result !== 'open');
+  if (closed.length === 0) {
+    document.getElementById('streakBanner').classList.remove('show','win-streak','lost-streak');
+    return;
+  }
+
+  let streak = 1;
+  const last = closed[0].result;
+  for (let i = 1; i < closed.length; i++) {
+    if (closed[i].result === last) streak++;
+    else break;
+  }
+
+  const banner = document.getElementById('streakBanner');
+  if (streak >= 2) {
+    banner.classList.add('show');
+    if (last === 'win') {
+      banner.classList.add('win-streak');
+      banner.classList.remove('lost-streak');
+      document.getElementById('streakIco').textContent = '🔥';
+      document.getElementById('streakLabel').textContent = 'WIN STREAK';
+    } else {
+      banner.classList.add('lost-streak');
+      banner.classList.remove('win-streak');
+      document.getElementById('streakIco').textContent = '❄️';
+      document.getElementById('streakLabel').textContent = 'LOSS STREAK';
+    }
+    document.getElementById('streakVal').textContent = `${streak} trade berturut-turut`;
+  } else {
+    banner.classList.remove('show','win-streak','lost-streak');
+  }
+}
+
+function renderList() {
+  const list = getFiltered();
+  const tlist = document.getElementById('tlist');
+  const empty = document.getElementById('empty');
+  const secCount = document.getElementById('secCount');
+
+  secCount.textContent = `${list.length} trade${list.length !== 1 ? 's' : ''}`;
+
+  if (list.length === 0) {
+    tlist.innerHTML = '';
+    empty.classList.add('show');
+    return;
+  }
+  empty.classList.remove('show');
+
+  tlist.innerHTML = list.map((t, i) => {
+    const resLabel = t.result === 'win' ? '✅ WIN' : t.result === 'lost' ? '❌ LOST' : '🟡 OPEN';
+    const sessLabel = {asian:'🌙 Asian',london:'🇬🇧 London',newyork:'🗽 NY','london+ny':'🌍 LDN+NY'}[t.sess] || '—';
+    const dateStr = t.entryDate ? formatDate(t.entryDate) : '—';
+    const rrDisplay = t.rr > 0 ? `${t.rr}R` : '—';
+    const totalIdx = trades.indexOf(t) + 1;
+
+    return `
+    <div class="tc ${t.result}">
+      <div class="tc-top">
+        <div class="tc-left">
+          <div class="dir-tag ${t.dir}">${t.dir === 'buy' ? '▲ BUY' : '▼ SELL'}</div>
+          <div class="tc-pair">XAU/USD</div>
+        </div>
+        <div class="res-tag ${t.result}">${resLabel}</div>
+      </div>
+      <div class="tc-grid">
+        <div class="tc-cell">
+          <div class="tc-cell-l">TANGGAL</div>
+          <div class="tc-cell-v go">${dateStr}</div>
+        </div>
+        <div class="tc-cell">
+          <div class="tc-cell-l">R : R</div>
+          <div class="tc-cell-v ${t.result==='win'?'gr':t.result==='lost'?'re':'go'}">${rrDisplay}</div>
+        </div>
+        <div class="tc-cell">
+          <div class="tc-cell-l">SESI</div>
+          <div class="tc-cell-v" style="font-size:11px">${sessLabel}</div>
+        </div>
+      </div>
+      ${t.note ? `<div class="tc-note">${escHtml(t.note)}</div>` : ''}
+      <div class="tc-foot">
+        <div class="tc-num">#${totalIdx} · ${t.closeDate ? formatDate(t.closeDate) : 'Open'}</div>
+        <div class="tc-acts">
+          <div class="ib" onclick="openModal(${t.id})" title="Edit">✏️</div>
+          <div class="ib" onclick="deleteTrade(${t.id})" title="Hapus">🗑️</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  const [y,m,day] = d.split('-');
+  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+  return `${parseInt(day)} ${months[parseInt(m)-1]}`;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── BACKUP ───────────────────────────────────────────────────────────────────
+function openBackup() {
+  const info = document.getElementById('bkInfo');
+  info.classList.remove('show');
+  document.getElementById('bkoverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBackup() {
+  document.getElementById('bkoverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function bkOverlayClose(e) {
+  if (e.target === document.getElementById('bkoverlay')) closeBackup();
+}
+
+function exportData() {
+  const data = {
+    app: 'XAU Backtest Journal',
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    count: trades.length,
+    trades
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `xau-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  const info = document.getElementById('bkInfo');
+  document.getElementById('bkInfoTxt').textContent = `${trades.length} trade berhasil di-export!`;
+  info.classList.add('show');
+  showToast('📤 Backup berhasil di-download!');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const imported = data.trades || data;
+      if (!Array.isArray(imported)) throw new Error('Format tidak valid');
+      trades = imported;
+      save();
+      render();
+      const info = document.getElementById('bkInfo');
+      document.getElementById('bkInfoTxt').textContent = `${imported.length} trade berhasil di-import!`;
+      info.classList.add('show');
+      showToast(`✅ ${imported.length} trade di-import!`);
+    } catch(err) {
+      showToast('❌ File backup tidak valid!');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── PWA: INLINE MANIFEST ─────────────────────────────────────────────────────
+(function() {
+  const manifest = {
+    name: "XAU Backtest Journal",
+    short_name: "XAU Journal",
+    description: "Gold trading backtest journal",
+    start_url: "./",
+    display: "standalone",
+    orientation: "portrait",
+    background_color: "#080A0F",
+    theme_color: "#F5C842",
+    icons: [
+      {
+        src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%23080A0F'/><rect x='20' y='20' width='152' height='152' rx='28' fill='%23F5C842' opacity='.12'/><text x='96' y='128' font-size='96' text-anchor='middle' font-family='sans-serif'>⚡</text></svg>`),
+        sizes: "192x192",
+        type: "image/svg+xml",
+        purpose: "any maskable"
+      },
+      {
+        src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23080A0F'/><rect x='40' y='40' width='432' height='432' rx='72' fill='%23F5C842' opacity='.12'/><text x='256' y='340' font-size='280' text-anchor='middle' font-family='sans-serif'>⚡</text></svg>`),
+        sizes: "512x512",
+        type: "image/svg+xml",
+        purpose: "any maskable"
+      }
+    ],
+    categories: ["finance", "productivity"],
+    shortcuts: [
+      {
+        name: "New Trade",
+        short_name: "Trade Baru",
+        description: "Tambah trade baru",
+        url: "./?action=new"
+      }
+    ]
+  };
+
+  const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  document.getElementById('pwa-manifest').href = url;
+})();
+
+// ─── PWA: SERVICE WORKER (inline via Blob) ────────────────────────────────────
+(function() {
+  if (!('serviceWorker' in navigator)) return;
+
+  const swCode = `
+const CACHE = 'xau-journal-v1';
+const ASSETS = [self.location.href];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => cached))
+  );
+});
+`;
+
+  const swBlob = new Blob([swCode], {type: 'application/javascript'});
+  const swUrl = URL.createObjectURL(swBlob);
+
+  navigator.serviceWorker.register(swUrl, {scope: './'})
+    .then(reg => {
+      console.log('[XAU PWA] Service Worker registered');
+    })
+    .catch(err => {
+      // SW via blob may fail in some browsers — app still works fully offline via localStorage
+      console.warn('[XAU PWA] SW skipped:', err.message);
+    });
+})();
+
+// ─── PWA: INSTALL PROMPT ──────────────────────────────────────────────────────
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  // Show install banner after short delay
+  setTimeout(() => {
+    if (deferredPrompt) showInstallBanner();
+  }, 3000);
+});
+
+function showInstallBanner() {
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.classList.add('show');
+}
+
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(choice => {
+    if (choice.outcome === 'accepted') {
+      showToast('✅ XAU Journal berhasil diinstall!');
+    }
+    deferredPrompt = null;
+    dismissInstall();
+  });
+}
+
+function dismissInstall() {
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.classList.remove('show');
+}
+
+window.addEventListener('appinstalled', () => {
+  showToast('🎉 App terinstall! Buka dari home screen.');
+  dismissInstall();
+});
+</script>
+
+<!-- PWA INSTALL BANNER -->
+<div id="installBanner" style="
+  display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  width:calc(100% - 32px);max-width:390px;
+  background:linear-gradient(135deg,rgba(245,200,66,0.15),rgba(232,160,32,0.08));
+  border:1px solid rgba(245,200,66,0.35);border-radius:18px;
+  padding:14px 16px;z-index:150;backdrop-filter:blur(16px);
+  flex-direction:row;align-items:center;gap:12px;
+  animation:mup 0.3s ease;
+">
+<style>
+#installBanner.show{display:flex!important}
+.inst-ico{font-size:28px;flex-shrink:0}
+.inst-info{flex:1;min-width:0}
+.inst-t{font-size:13px;font-weight:700;color:#F5C842;margin-bottom:2px}
+.inst-s{font-size:11px;color:#8892A4;line-height:1.4}
+.inst-btns{display:flex;gap:6px;flex-shrink:0}
+.inst-yes{background:linear-gradient(135deg,#F5C842,#E8A020);color:#000;border:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer}
+.inst-no{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#8892A4;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:600;font-family:'Space Grotesk',sans-serif;cursor:pointer}
+</style>
+  <div class="inst-ico">⚡</div>
+  <div class="inst-info">
+    <div class="inst-t">Install XAU Journal</div>
+    <div class="inst-s">Simpan ke home screen untuk akses cepat</div>
+  </div>
+  <div class="inst-btns">
+    <button class="inst-yes" onclick="installPWA()">Install</button>
+    <button class="inst-no" onclick="dismissInstall()">✕</button>
+  </div>
+</div>
+
+</body>
+</html>
